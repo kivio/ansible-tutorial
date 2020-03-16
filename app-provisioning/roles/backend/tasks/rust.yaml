@@ -1,0 +1,21 @@
+---
+
+- name: Download Rust
+  get_url:
+    url: https://static.rust-lang.org/rustup.sh
+    dest: /tmp/install-rust.sh
+    mode: 0755
+
+- name: Install Rust
+  shell: /tmp/install-rust.sh -y
+
+- name: Link Cargo
+  file:
+    src: "/root/.cargo/bin/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+    mode: "0755"
+  with_items: 
+    - cargo
+    - rustc
+

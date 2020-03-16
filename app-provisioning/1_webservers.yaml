@@ -1,0 +1,16 @@
+---
+
+# file: 1_webservers.yaml
+
+- hosts: webservers
+  gather_facts: false
+  become: true
+  tasks:
+    - name: "Setup Web Machines"
+      debug:
+        msg: "Setting up Web Machines"
+  roles:
+    - common
+    - nginx
+    - frontend
+    - backend

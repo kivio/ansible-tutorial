@@ -1,0 +1,59 @@
+---
+
+- include: rust.yaml
+- include: postgres.yaml
+
+- name: "Get code"
+  git:
+    repo: https://github.com/TatriX/realworld-rust-rocket.git
+    dest: /src/backend
+    update: false
+
+- name: "Init database"
+  shell: psql -f init.sql -h {{ groups['dbservers'][0] }} -U postgres
+  args:
+    chdir: /src/backend
+  environment:
+    PGPASSWORD: postgres
+
+- name: "Install diesel cli"
+  shell: "cargo install diesel_cli --no-default-features --features 'postgres'"
+  args:
+    chdir: /src/backend
+
+- set_fact:
+    DATABASE_URL: "postgres://postgres:postgres@{{ groups['dbservers'][0] }}/realworld"
+
+- name: "Setup diesel connection to postgres"
+  lineinfile:
+    path: /src/backend/.env
+    line: "DATABASE_URL={{ DATABASE_URL }}"
+    create: true
+
+- name: "Run diesiel migrations"
+  shell: /root/.cargo/bin/diesel migration run
+  args:
+    chdir: /src/backend
+  environment:
+    DATABASE_URL: "{{ DATABASE_URL }}"
+
+- name: "Generate production app"
+  shell: cargo build --release
+  args:
+    chdir: /src/backend
+
+- name: "Render service configuration"
+  template:
+    src: "realworld.service.j2"
+    dest: "/etc/systemd/system/realworld.service"
+    mode: 0600
+
+- name: "Add realworld to autostart"
+  service:
+    name: realworld
+    enabled: true
+
+- name: "Restart realworld"
+  service:
+    name: realworld
+    state: restarted

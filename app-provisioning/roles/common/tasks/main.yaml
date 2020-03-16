@@ -1,0 +1,16 @@
+---
+
+- name: "Update system"
+  yum:
+    state: present
+    name: "*"
+
+- name: "Install Epel for Amazon Extras"
+  become: true
+  shell: amazon-linux-extras install epel -y
+
+
+- name: "Install needed modules"
+  yum:
+    state: present
+    name: ["git"]

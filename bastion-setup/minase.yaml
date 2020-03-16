@@ -1,0 +1,29 @@
+---
+- set_fact:
+    minase_code_dir: minase-code
+
+- name: "Get Minase repository"
+  git:
+    repo: https://github.com/SAT1226/Minase.git
+    dest: "{{ minase_code_dir }}"
+
+- name: "Install dependencies"
+  yum:
+    name: ["gcc", "gcc-c++", "uchardet", "uchardet-devel", 
+            "taglib", "taglib-devel"]
+
+- name: "Build code"
+  shell: cmake3 .
+  args: 
+    chdir: "{{ minase_code_dir }}"
+
+- name: "Make code"
+  shell: make
+  args:
+    chdir: "{{ minase_code_dir }}"
+
+- name: "Make for all"
+  become: true
+  shell: make install
+  args:
+    chdir: "{{ minase_code_dir }}"

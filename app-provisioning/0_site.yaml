@@ -1,0 +1,155 @@
+---
+
+#file: 0_site.yaml
+
+# do AWS works
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: ""
+      debug: 
+        msg: "Start machine provisioning"
+
+    - set_fact:
+         key_path: /tmp/ansible_aws_rsa
+         key_name: stud_test_key
+
+    - name: "read SSH keys"
+      openssh_keypair:
+        path: "{{ key_path }}"
+        size: 1024
+      register: ssh_key
+
+    - name: "Add key to AWS"
+      ec2_key:
+        region: us-east-1
+        name: "{{ key_name }}"
+        key_material: "{{ ssh_key.public_key }}"
+
+    - name: "Add key to authorized"
+      authorized_key:
+        user: ec2-user
+        state: present
+        key: "{{ ssh_key.public_key}}"
+
+    - meta: refresh_inventory
+
+    - pause: 
+        minutes: 3
+
+    - set_fact:
+        web_are_running: "{{ groups['webservers'] | length > 0 }}"
+        db_are_running: "{{ groups['dbservers'] | length > 0 }}"
+
+    - name: "Are webservers running"
+      debug:
+        msg: "{{ web_are_running }}"
+
+    - name: "Are dbservers running"
+      debug:
+        msg: "{{ db_are_running }}"
+
+    - name: "Create security group"
+      ec2_group:
+        name: "student_app_test"
+        description: "Right configuration for app setup"
+        vpc_id: "vpc-aaad94d0"
+        region: us-east-1
+        tags: 
+            student: stud-test
+        rules:
+            - proto: tcp
+              ports:
+                - 22
+              cidr_ip: 0.0.0.0/0
+              rule_desc: allow ssh
+            - proto: tcp
+              ports:
+                - 80
+              cidr_ip: 0.0.0.0/0
+              rule_desc: allow http
+            - proto: tcp
+              ports:
+                - 5432
+              cidr_ip: 0.0.0.0/0
+              rule_desc: allow psql
+
+    - name: "Create web machines"
+      ec2:
+        region: us-east-1
+        group: student_app_test
+        key_name: "{{ key_name }}"
+        instance_type: t2.micro
+        instance_profile_name: test-student
+        wait: true
+        wait_timeout: 500
+        count: 1
+        instance_tags:
+            Name: "[S1] Web Server"
+            student: stud-test
+            role: web
+            app: realworld
+        image: ami-0fc61db8544a617ed 
+      register: webservers
+      when: not web_are_running
+
+    - name: "Create DB machines"
+      ec2:
+        region: us-east-1
+        group: student_app_test
+        key_name: "{{ key_name }}"
+        instance_type: t2.micro
+        instance_profile_name: test-student
+        wait: true
+        wait_timeout: 500
+        count: 1
+        instance_tags:
+            Name: "[S1] DB Server"
+            student: stud-test
+            role: db
+            app: realworld
+        image: ami-0fc61db8544a617ed
+      register: dbservers
+      when: not db_are_running
+
+    - name: Add web instances to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: webservers
+        ansible_ssh_private_key_file: "{{ ssh_key.filename }}"
+      loop: "{{ webservers.instances }}"
+      when: not web_are_running
+
+    - name: "Add new ssh fingerprints to Known_hosts"
+      shell: ssh-keyscan -H {{ item }} >> ~/.ssh/known_hosts
+      with_items: "{{ groups['webservers'] }}"
+      when: not web_are_running
+
+    - name: Add db instance to host group
+      add_host:
+        hostname: "{{ item.public_ip }}"
+        groupname: dbservers
+        ansible_ssh_private_key_file: "{{ ssh_key.filename }}"
+      loop: "{{ dbservers.instances }}"
+      when: not db_are_running
+
+    - name: "Add new ssh fingerprints to Known_hosts"
+      shell: ssh-keyscan -H {{ item }} >> ~/.ssh/known_hosts
+      with_items: "{{ groups['dbservers'] }}"
+      when: not db_are_running
+    
+    - name: Wait for SSH to come up on Web
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+      loop: "{{ groups['webservers'] | list }}"
+
+    - name: Wait for SSH to come up on DB
+      wait_for_connection:
+        delay: 60
+        timeout: 320
+      loop: "{{ groups['dbservers'] | list }}"
+
+# import machine configuration by role
+- import_playbook: 2_dbservers.yaml
+- import_playbook: 1_webservers.yaml

@@ -1,0 +1,59 @@
+---
+
+- name: "Install postgres by amazon extras"
+  shell: amazon-linux-extras install postgresql10 -y
+
+- name: "Install python dependencies"
+  yum:
+    state: present
+    name: ["python-psycopg2"]
+
+- name: "Install postgres"
+  yum:
+    state: present
+    name: ["postgresql-server", "postgresql-devel"]
+
+- name: "Initialize postgres"
+  become_user: postgres
+  shell: /usr/bin/postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data
+
+- name: Configure global settings.
+  lineinfile:
+    dest: "/var/lib/pgsql/data/postgresql.conf"
+    regexp: "^#?{{ item.option }}.+$"
+    line: "{{ item.option }} = '{{ item.value }}'"
+    state: "{{ item.state | default('present') }}"
+  with_items: "{{ postgresql_global_config_options }}"
+
+- name: Configure host based authentication (if entries are configured).
+  template:
+    src: "pg_hba.conf.j2"
+    dest: "/var/lib/pgsql/data//pg_hba.conf"
+    owner: "postgres"
+    group: "postgres"
+    mode: 0600
+  when: postgresql_hba_entries | length > 0
+
+- name: "Add postgres to autostart"
+  service:
+    name: postgresql
+    enabled: true
+
+- name: "Start postgres"
+  service:
+    name: postgresql
+    state: started
+
+- name: "Restart postgres"
+  service:
+    name: postgresql
+    state: restarted
+
+- name: "Set user password"
+  become_user: postgres
+  postgresql_user:
+    user: postgres
+    password: postgres
+    

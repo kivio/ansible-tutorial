@@ -1,0 +1,9 @@
+---
+  
+- name: "Install postgres by amazon extras"
+  shell: amazon-linux-extras install postgresql10 -y
+
+- name: "Install postgres"
+  yum:
+    state: present
+    name: ["postgresql", "postgresql-devel"]

@@ -1,0 +1,15 @@
+---
+
+- name: "Install dependencies"
+  yum:
+    state: present
+    name: ["gcc", "gcc-c++", "make"]
+
+- name: "Get NodeJS installer"
+  get_url:
+    url: https://rpm.nodesource.com/setup_12.x
+    dest: /tmp/npm_install.sh
+    mode: "0755"
+
+- name: "Install NodeJS 12"
+  shell: /tmp/npm_install.sh

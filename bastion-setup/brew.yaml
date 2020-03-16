@@ -1,0 +1,67 @@
+---
+
+- name: Check previous Linuxbrew installation
+  stat:
+    path: /home/linuxbrew/.linuxbrew
+  register: brew_files
+
+- name: Get brew code
+  git: 
+    repo: https://github.com/Linuxbrew/brew.git
+    dest: /home/linuxbrew/.linuxbrew
+    update: false
+  when: brew_files.stat.exists == False
+
+- name: Setup profiles in bash
+  copy:
+    dest: "/etc/profile.d/linuxbrew.sh"
+    content: |
+      export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH" 
+      export MANPATH="$(brew --prefix)/share/man:$MANPATH" 
+      export INFOPATH="$(brew --prefix)/share/info:$INFOPATH" 
+  when: brew_files.stat.exists == False
+
+- name: Make brew user
+  user:
+    name: linuxbrew
+    state: present
+
+- name: Move brew to linuxbrew group
+  file:
+    path: "/home/linuxbrew"
+    recurse: true
+    group: linuxbrew
+    owner: linuxbrew
+    mode: 0776
+
+- name: Create .ssh directory
+  file:
+    path: "/home/linuxbrew/.ssh"
+    state: directory
+    owner: linuxbrew
+
+- name: Check SSH files
+  stat:
+    path: /home/linuxbrew/.ssh/id_rsa
+  register: ssh_files
+
+- name: Create SSH keys
+  shell: su linuxbrew -c 'ssh-keygen -b 2048 -t rsa -f /home/linuxbrew/.ssh/id_rsa -q -N ""'
+  when: ssh_files.stat.exists == False
+  
+- name: Copy Public Key to authorized_keys
+  shell: su linuxbrew -c 'cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && chmod og-wx ~/.ssh/authorized_keys'
+    
+- name: Add users to linuxbrew group
+  user:
+    name: ec2-user
+    groups: linuxbrew
+    append: true
+
+- name: restart account
+  meta: reset_connection
+
+- name: Install test application
+  become_user: linuxbrew
+  shell: /home/linuxbrew/.linuxbrew/bin/brew install hello
+

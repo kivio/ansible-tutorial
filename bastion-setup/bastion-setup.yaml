@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  become: true
+  tasks:
+    - set_fact:
+        repo_url: "https://copr.fedorainfracloud.org/coprs/konimex/neofetch/repo/epel-7/konimex-neofetch-epel-7.repo"
+
+    - name: "Add Neofetch repository"
+      shell: "yum-config-manager --add-repo={{ repo_url }}"
+      args:
+        creates: /etc/yum.repos.d/konimex-neofetch-epel-7.repo
+  
+    - name: "Install usefull packages"
+      yum:
+        name: ["tree", "neofetch", "git", "cmake3"]
+
+    - name: "Install Epel for Amazon Extras"
+      become: true
+      shell: amazon-linux-extras install epel
+
+    - include: brew.yaml
+    - include: minase.yaml
+
+    - name: "Install HomeBrew packages"
+      become_user: linuxbrew
+      shell: "/home/linuxbrew/.linuxbrew/bin/brew install {{ item }}"
+      loop:
+        - ack
+        - fzf
+        - bat

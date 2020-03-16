@@ -1,0 +1,14 @@
+[tag_app_realworld]
+
+[tag_role_db]
+
+[tag_role_web]
+
+[aws:children]
+tag_app_realworld
+
+[webservers:children]
+tag_role_web
+
+[dbservers:children]
+tag_role_db

@@ -1,0 +1,29 @@
+---
+# file: 9_destroy.yaml
+
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Get Instance data"
+      ec2_instance_info:
+        region: us-east-1
+        filters:
+            instance-state-name: ["running"]
+            "tag:student": stud-test
+            "tag:app": realworld
+      register: machines
+
+    - set_fact:
+        instances_ids: "{{ machines.instances | map(attribute='instance_id') | list }}"
+
+    - name: "Instances id's that will be terminated"
+      debug:
+        msg: "{{ instances_ids }}"
+
+    - name: "Terminate Machines"
+      ec2:
+        state: absent
+        wait: true
+        region: us-east-1
+        instance_ids: "{{ instances_ids }}"
+      when: instances_ids | length > 0

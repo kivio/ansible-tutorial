@@ -1,0 +1,14 @@
+---
+
+# file: 2_dbservers.yaml
+
+- hosts: dbservers
+  gather_facts: false
+  become: true
+  tasks:
+    - name: "Setup DB Servers"
+      debug:
+        msg: "Setting up DB Servers"
+  roles:
+    - common
+    - postgres

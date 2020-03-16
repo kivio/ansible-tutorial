@@ -1,0 +1,43 @@
+---
+
+- include: nodejs.yaml
+- include: yarn.yaml
+
+- name: "Create code directory"
+  file:
+    path: /src/
+    state: directory
+    mode: "0755"
+
+- name: "Clone code"
+  git:
+    repo: https://github.com/gothinkster/vue-realworld-example-app.git
+    dest: /src/frontend
+    update: false
+
+- name: "Install npm dependencies"
+  shell: yarn install
+  args:
+    chdir: /src/frontend
+
+- name: "Build code"
+  shell: yarn run build
+  args:
+    chdir: /src/frontend
+
+- name: "Remove default nginx directory"
+  file:
+    path: /usr/share/nginx/html
+    state: absent
+
+- name: "Link code to nginx"
+  file:
+    src: /src/frontend/dist
+    dest: /usr/share/nginx/html
+    state: link
+
+- name: "Restart nginx"
+  service:
+    name: nginx
+    state: restarted
+    

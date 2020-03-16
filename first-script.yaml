@@ -1,0 +1,9 @@
+---
+
+- hosts: localhost
+  gather_facts: true
+  tasks:
+    - name: test connection
+      ping:
+    - debug:
+        msg: Hello world from {{ ansible_hostname }} @ {{ ansible_default_ipv4.address }}

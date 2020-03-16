@@ -1,0 +1,14 @@
+[Unit]
+Description=Rust Rocket Web Application Example from Realworld repository
+[Service]
+User=root
+Group=root
+WorkingDirectory=/src/backend
+Environment="ROCKET_ENV=prod"
+Environment="ROCKET_ADDRESS=0.0.0.0"
+Environment="ROCKET_PORT=8000"
+Environment="ROCKET_LOG=critical"
+Environment="DATABASE_URL={{ DATABASE_URL }}"
+ExecStart=/src/backend/target/release/realworld
+[Install]
+WantedBy=multi-user.target
