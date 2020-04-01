@@ -20,6 +20,7 @@
 
     - include: brew.yaml
     - include: minase.yaml
+    - include: wemux.yaml
 
     - name: "Install HomeBrew packages"
       become_user: linuxbrew
@@ -28,3 +29,5 @@
         - ack
         - fzf
         - bat
+        - tmux
+      ignore_errors: true

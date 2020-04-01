@@ -14,10 +14,10 @@
     name: ["postgresql-server", "postgresql-devel"]
 
 - name: "Initialize postgres"
-  become_user: postgres
+  #become_user: postgres
+  retries: 2
+  ignore_errors: true
   shell: /usr/bin/postgresql-setup --initdb
-  args:
-    creates: /var/lib/pgsql/data
 
 - name: Configure global settings.
   lineinfile:

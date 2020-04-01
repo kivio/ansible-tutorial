@@ -15,6 +15,12 @@
     dest: /src/frontend
     update: false
 
+- name: "Change API URL"
+  lineinfile:
+    path: /src/frontend/src/common/config.js
+    regexp: "^export const API_URL = "
+    line: "export const API_URL = \"http://{{ ansible_host }}/api/\";"
+
 - name: "Install npm dependencies"
   shell: yarn install
   args:

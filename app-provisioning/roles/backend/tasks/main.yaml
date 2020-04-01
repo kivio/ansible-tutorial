@@ -57,3 +57,13 @@
   service:
     name: realworld
     state: restarted
+
+- name: "Configure nginx to serve backend"
+  copy:
+    src: api.conf
+    dest: /etc/nginx/default.d/api.conf
+    
+- name: "Restart nginx"
+  service:
+    name: nginx
+    state: restarted
